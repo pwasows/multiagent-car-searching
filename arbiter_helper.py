@@ -61,6 +61,8 @@ class ArbiterHelper:
             self._work_list = []
             for i in range(0, len(actors_counts)):
                 self._work_list.append(_default_works_gen())
+        else:
+            self._work_list = work_list
         self._arbiter_init_task = arbiter_init_task
         self._arbiter_last_task = arbiter_last_task
         self._actors_init_tasks = actors_init_tasks
