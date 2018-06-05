@@ -14,11 +14,11 @@ def _default_works_gen():
         yield partial(_default_work, i)
 
 
-def _default_arbiter_init_task():
+def _arbiter_init_task():
     print(str(get_actor().name) + ': Inicjalizuję arbitra')
 
 
-async def _default_arbiter_last_task():
+async def _arbiter_last_task():
     print('arbiter: Wykonuję ostatnie zadanie')
     await asyncio.sleep(5)
     print('arbiter: Kończę pracę!')
@@ -48,13 +48,16 @@ def _assign_work(request, number):
         pass
 
 
+@command()
+async def _stop_run_actor(request):
+    get_actor().extra["running"] = False
+
+
 class ArbiterHelper:
     def __init__(self, actors_counts,
                  work_list=[],
                  actors_init_tasks=[],
-                 actors_last_tasks=[],
-                 arbiter_init_task=_default_arbiter_init_task,
-                 arbiter_last_task=_default_arbiter_last_task):
+                 actors_last_tasks=[]):
 
         self._actors_counts = actors_counts
         if not work_list:
@@ -63,8 +66,8 @@ class ArbiterHelper:
                 self._work_list.append(_default_works_gen())
         else:
             self._work_list = work_list
-        self._arbiter_init_task = arbiter_init_task
-        self._arbiter_last_task = arbiter_last_task
+        self._arbiter_init_task = _arbiter_init_task
+        self._arbiter_last_task = _arbiter_last_task
         self._actors_init_tasks = actors_init_tasks
         self._actors_last_tasks = actors_last_tasks
         self._initialize_arbiter()
@@ -81,6 +84,8 @@ class ArbiterHelper:
 
     async def _arbiter_work(self):
         self.actors = []
+        arbiter().extra["data_actors"] = []
+        arbiter().extra["scrapper_actors"] = []
 
         if not self._actors_init_tasks:
             self._actors_init_tasks = [_default_actor_init_task] * len(self._actors_counts)
@@ -93,26 +98,33 @@ class ArbiterHelper:
                 actor_name = 'actor({}, {})'.format(i, j)
                 print(get_actor().name + ': Tworzę aktora ' + actor_name + '...')
 
-                actor = await spawn(name=actor_name, start=partial(ArbiterHelper._init_actor, number=i,
+                actor = await spawn(name=actor_name, start=partial(ArbiterHelper._init_actor, number=i, sec_number=j,
                                                                    init_func=partial(self._actors_init_tasks[i]),
                                                                    last_job=partial(self._actors_last_tasks[i])))
                 self.actors.append(actor)
+                if i == 0:
+                    arbiter().extra["data_actors"].append(actor)
+                elif i == 1:
+                    arbiter().extra["scrapper_actors"].append(actor)
 
-        while True in [actor.is_alive() for actor in self.actors]:
+        while True in [actor.is_alive() for actor in self.actors[self._actors_counts[0]:]]:
             await asyncio.sleep(1)
 
+        for actor in self.actors[:self._actors_counts[0]]:
+            await send(actor, '_stop_run_actor')
+
+        await asyncio.sleep(2)
         await self._arbiter_last_task()
-        await asyncio.sleep(5)
 
         try:
             arbiter().stop()
         except PermissionError:  # Windows
             quit()
 
-
     @staticmethod
-    def _init_actor(_, number, init_func, last_job):
+    def _init_actor(_, number, sec_number, init_func, last_job):
         get_actor().extra['number'] = number
+        get_actor().extra['sec_number'] = sec_number
         init_func()
         ensure_future(ArbiterHelper._actor_loop(last_job))
 
