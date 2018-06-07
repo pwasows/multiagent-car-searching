@@ -26,6 +26,9 @@ class AdsDatabase:
         for hyperlink in ad_hyperlinks:
             self._storage.loc[hyperlink]['active'] = False
 
+    def get_ads(self):
+        return self._storage
+
     def get_active_ads(self):
         active_ads = self._storage['active'] == True
         return self._storage.loc[active_ads]
