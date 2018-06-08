@@ -2,6 +2,7 @@ import random
 from nltk.tokenize import RegexpTokenizer
 import morfeusz
 from gensim import corpora, models, similarities, matutils
+import numpy as np
 
 
 class RecommenderEngine:
@@ -9,12 +10,23 @@ class RecommenderEngine:
         self._ads_database = ads_database
         self._stopwords = self._load_stopwords()
 
-    def find_similar(self, ad_hyperlink, ads_number):
+    def find_similar(self, ad_hyperlinks, ads_number):
         dictionary, LSI_model, tf_idf_model, similarity_matrix = self._prepare_vector_space_model()
-        ad_row = self._ads_database.get_ads().index.get_loc(ad_hyperlink)
-        similarities = similarity_matrix.similarity_by_id(ad_row)
+        db = self._ads_database.get_ads()
+        results = []
+        for link in ad_hyperlinks:
+            ad_row = db.index.get_loc(link)
+            similarities = similarity_matrix.similarity_by_id(ad_row)
+            results.append(similarities)
 
-        return similar
+        result = sum(results)
+        # negation to sort in descending order
+        best_fit = (-result).argsort()[:ads_number]
+
+        best_fit_links = []
+        for i in best_fit:
+            best_fit_links.append(db.iloc[i])
+        return best_fit_links
 
     def _prepare_vector_space_model(self):
         ads = self._ads_database.get_ads()

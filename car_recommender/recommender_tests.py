@@ -23,4 +23,4 @@ krl = AdData(hyperlink='krl', description='Legenda powraca. By zarobić jeszcze 
 
 db.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
 
-print(recommender.find_similar('dzb', 1))
+print(recommender.find_similar(['dzb', 'kdw'], 4))
