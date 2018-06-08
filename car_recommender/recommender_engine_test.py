@@ -43,3 +43,9 @@ print(len(dictionary))
 
 LSI_model = engine._prepare_LSI_model(tf_idf_corpus, dictionary)
 print(dir(LSI_model))
+
+sim_mx = engine._prepare_similarity_matrix(LSI_model,
+                                           tf_idf_corpus,
+                                           data)
+
+engine.find_similar()

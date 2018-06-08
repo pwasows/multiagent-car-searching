@@ -38,4 +38,4 @@ class Recommender:
         ads_number -- the maximal number of found similar ads
 
         """
-        return self._recommender_engine.find_similar(ad_hyperlink, ads_number)
+        return self._recommender_engine.find_similar(ad_hyperlinks, ads_number)

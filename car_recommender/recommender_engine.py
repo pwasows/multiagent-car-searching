@@ -10,22 +10,16 @@ class RecommenderEngine:
         self._stopwords = self._load_stopwords()
 
     def find_similar(self, ad_hyperlink, ads_number):
-        model, corpus = self._prepare_vector_space_model()
-        similarity_matrix = self._prepare_similarity_matrix(LSI_model,
-                                                            tf_idf_corpus)
-        ad_row = self._ads_database.index.get_loc(ad_hyperlink)
+        dictionary, LSI_model, tf_idf_model, similarity_matrix = self._prepare_vector_space_model()
+        ad_row = self._ads_database.get_ads().index.get_loc(ad_hyperlink)
+        similarities = similarity_matrix.similarity_by_id(ad_row)
 
-        #TODO: get ads_number most similar ads
-
-        result = []
-        for _ in range(0, ads_number):
-            result.append(random.randint(1, 5))
-        return result
+        return similar
 
     def _prepare_vector_space_model(self):
         ads = self._ads_database.get_ads()
         ads_data = list(ads['description'])
-        ads_data = self._string_tokenize(ads_data)
+        ads_data = self._tokenize(ads_data)
         ads_data = self._to_lowercase(ads_data)
         ads_data = self._remove_stopwords(ads_data)
         ads_data = self._lemmatize(ads_data)
@@ -34,8 +28,10 @@ class RecommenderEngine:
         tf_idf_model = self._prepare_tf_idf_model(corpus)
         tf_idf_corpus = self._prepare_tf_idf_corpus(corpus, tf_idf_model)
         LSI_model = self._prepare_LSI_model(tf_idf_corpus, dictionary)
-        return LSI_model, tf_idf_model
-
+        similarity_matrix = self._prepare_similarity_matrix(LSI_model,
+                                                            tf_idf_corpus,
+                                                            ads_data)
+        return dictionary, LSI_model, tf_idf_model, similarity_matrix
 
     def _load_stopwords(self):
         stopwords = []
@@ -97,10 +93,19 @@ class RecommenderEngine:
         return tf_idf_model[corpus]
 
     def _prepare_LSI_model(self, corpus, dictionary):
-        return models.LsiModel(corpus, id2word=dictionary, num_topics=30)
+        return models.LsiModel(corpus, id2word=dictionary,
+                               num_topics=30)
 
-    def _prepare_similarity_matrix(self, model, corpus):
-        return similarities.MatrixSimilarity(model[corpus])
+    def _prepare_similarity_matrix(self, model, corpus, texts):
+        terms = set()
+        for text in texts:
+            terms |= set(text)
+        terms_number = len(terms)
+        print(terms_number)
+
+        return similarities.Similarity(output_prefix='sim_matrix',
+                                       corpus=model[corpus],
+                                       num_features=terms_number)
 
     def _find_similar_ads(self, model, user_ad_indexes, number):
         pass
