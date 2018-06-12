@@ -1,22 +1,43 @@
-import random
+from ad_data import AdData
 from nltk.tokenize import RegexpTokenizer
 import morfeusz
-from gensim import corpora, models, similarities, matutils
-import numpy as np
+from gensim import corpora, models, similarities
+import pandas as pd
 
 
 class RecommenderEngine:
-    def __init__(self, ads_database):
-        self._ads_database = ads_database
+    def __init__(self):
         self._stopwords = self._load_stopwords()
+        self._lsi_model = models.LsiModel.load('allegro_model_lsi')
+        self._dictionary = corpora.Dictionary.load('allegro_dictionary')
+        self._model_index = \
+            similarities.Similarity(output_prefix='sim_matrix_tmp',
+                                    corpus=None,
+                                    num_features=self._lsi_model.num_topics)
+        self._storage = pd.DataFrame(columns=['hyperlink', 'description'])
+        self._storage = self._storage.set_index('hyperlink')
+
+    def add_ads(self, ads_data):
+        if type(ads_data) is AdData:
+            ads_data = [ads_data]
+        elif type(ads_data) is not list:
+            raise TypeError
+
+        for ad in ads_data:
+            self._storage.loc[ad.hyperlink] = [ad.description]
+            self._add_to_similarity_matrix(ad.description)
+
+    def get_ad_links(self):
+        return self._storage['hyperlink'].tolist()
 
     def find_similar(self, ad_hyperlinks, ads_number):
-        dictionary, LSI_model, tf_idf_model, similarity_matrix = self._prepare_vector_space_model()
-        db = self._ads_database.get_ads()
         results = []
         for link in ad_hyperlinks:
-            ad_row = db.index.get_loc(link)
-            similarities = similarity_matrix.similarity_by_id(ad_row)
+            try:
+                ad_row = self._storage.index.get_loc(link)
+            except KeyError:
+                print('Ad not found: ' + link)
+            similarities = self._similarity_by_id(ad_row)
             results.append(similarities)
 
         result = sum(results)
@@ -28,22 +49,21 @@ class RecommenderEngine:
             best_fit_links.append(db.iloc[i])
         return best_fit_links
 
-    def _prepare_vector_space_model(self):
-        ads = self._ads_database.get_ads()
-        ads_data = list(ads['description'])
-        ads_data = self._tokenize(ads_data)
-        ads_data = self._to_lowercase(ads_data)
-        ads_data = self._remove_stopwords(ads_data)
-        ads_data = self._lemmatize(ads_data)
-        dictionary = self._prepare_dictionary(ads_data)
-        corpus = self._prepare_corpus(ads_data, dictionary)
-        tf_idf_model = self._prepare_tf_idf_model(corpus)
-        tf_idf_corpus = self._prepare_tf_idf_corpus(corpus, tf_idf_model)
-        LSI_model = self._prepare_LSI_model(tf_idf_corpus, dictionary)
-        similarity_matrix = self._prepare_similarity_matrix(LSI_model,
-                                                            tf_idf_corpus,
-                                                            ads_data)
-        return dictionary, LSI_model, tf_idf_model, similarity_matrix
+    def _add_to_similarity_matrix(self, descriptions):
+        description_lsi = self._texts_to_lsi(descriptions)
+        self._model_index.add_documents(description_lsi)
+
+    def _texts_to_lsi(self, descriptions):
+        transformed = self._tokenize(descriptions)
+        transformed = self._to_lowercase(transformed)
+        transformed = self._remove_stopwords(transformed)
+        transformed = self._lemmatize(transformed)
+        corpus = self._prepare_tf_idf_corpus(transformed, self._dictionary)
+        return self._lsi_model[corpus]
+
+    def _prepare_tf_idf_corpus(self, texts):
+        tf_idf_corpus = [self._dictionary.doc2bow(text) for text in texts]
+        return self._tf_idf_model[tf_idf_corpus]
 
     def _load_stopwords(self):
         stopwords = []
@@ -91,33 +111,3 @@ class RecommenderEngine:
             result.append(text_lemmas)
 
         return result
-
-    def _prepare_dictionary(self, texts):
-        return corpora.Dictionary(texts)
-
-    def _prepare_corpus(self, texts, dictionary):
-        return [dictionary.doc2bow(text) for text in texts]
-
-    def _prepare_tf_idf_model(self, corpus):
-        return models.TfidfModel(corpus)
-
-    def _prepare_tf_idf_corpus(self, corpus, tf_idf_model):
-        return tf_idf_model[corpus]
-
-    def _prepare_LSI_model(self, corpus, dictionary):
-        return models.LsiModel(corpus, id2word=dictionary,
-                               num_topics=30)
-
-    def _prepare_similarity_matrix(self, model, corpus, texts):
-        terms = set()
-        for text in texts:
-            terms |= set(text)
-        terms_number = len(terms)
-        print(terms_number)
-
-        return similarities.Similarity(output_prefix='sim_matrix',
-                                       corpus=model[corpus],
-                                       num_features=terms_number)
-
-    def _find_similar_ads(self, model, user_ad_indexes, number):
-        pass
