@@ -1,0 +1,2 @@
+Żeby Pythonowy pakiet python-morfeusz zadziałał, w systemie musi być biblioteka libmorfeusz.so, znajdująca się w archiwum.
+Plik musi się znajdować w /usr/lib
