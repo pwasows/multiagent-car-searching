@@ -1,12 +1,8 @@
 from ad_data import AdData
 from recommender import Recommender
-from ads_database import AdsDatabase
-from recommender_engine import RecommenderEngine
 
 
-db = AdsDatabase()
-engine = RecommenderEngine(db)
-recommender = Recommender(db, engine)
+recommender = Recommender()
 
 dzb = AdData(hyperlink='dzb', description='Ostatnia część "dolarowej trylogii" Sergia Leone. Trzej mężczyźni, Zły - bezwzględny łowca nagród, Brzydki - wielokrotny przestępca, Dobry - łowca głów z zasadami, usiłują dotrzeć do skarbu ukrytego przez wojsko. Brzydki jest w posiadaniu informacji o nazwie cmentarza, na którym został on zakopany, Dobry zna nazwisko na poszukiwanym grobie. Czyni to z nich mimowolny zespół. Po piętach depcze im Zły.',tags=[])
 kdw = AdData(hyperlink='kdw', description='Kiedy dwaj rywalizujący ze sobą łowcy nagród (nagrodzony Oscarem Clint Eastwood oraz Lee Van Cleef) orientują się, że ścigają tego samego bandytę, łączą siły w nadziei doprowadzenia go przed oblicze sprawiedliwości. Jednak wraz z rozwojem akcji, sprawy coraz bardziej się komplikują. Zobacz mocną, drugą część sagi Sergia Leone, w której Eastwood wciela się w osławionego „Człowieka bez imienia”.', tags=[])
@@ -21,6 +17,6 @@ djg = AdData(hyperlink='djg', description='Z jednej strony pastisz, z drugiej �
 mow = AdData(hyperlink='mow', description='Agentce FBI, Clarise Starling, zostaje powierzona sprawa "Buffalo Billa", seryjnego mordercy wyróżniającego się szczególnym okrucieństwem wobec swych ofiar, które odziera ze skóry. Sprawę pomaga jej rozwikłać inny, niezwykle inteligentny i niebezpieczny morderca - Hannibal Lecter - pacjent więziennego centrum psychiatrycznego. Hannibal jest zauroczony Clarice, a w zamian za odkrywanie przez nią części swej przeszłości, kawałek po kawałku odkrywa dla niej tajemnicę morderstw.', tags=[])
 krl = AdData(hyperlink='krl', description='Legenda powraca. By zarobić jeszcze więcej. Na szczęście nie w jednym ze słabych sequeli, z którymi studio Disneya niszczy od lat dziecięce gusta. "Król Lew" doczekał się dwóch takich kontynuacji, ale  teraz, po 17 latach swoją drugą szansę w kinach dostaje oryginalny film z 1994 roku – tyle że przetransferowany do formatu 3D. Inaczej niż w przypadku odświeżonego "Toy Story", na warsztat poszła animacja rysowana, ale jednak nie całkiem klasyczna.', tags=[])
 
-db.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
+recommender.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
 
 print(recommender.find_similar(['dzb', 'kdw'], 4))
