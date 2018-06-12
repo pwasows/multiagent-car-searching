@@ -2,7 +2,7 @@ from ad_data import AdData
 from recommender import Recommender
 
 
-recommender = Recommender()
+recommender = Recommender('ignored ads file')
 
 dzb = AdData(hyperlink='dzb', description='Ostatnia część "dolarowej trylogii" Sergia Leone. Trzej mężczyźni, Zły - bezwzględny łowca nagród, Brzydki - wielokrotny przestępca, Dobry - łowca głów z zasadami, usiłują dotrzeć do skarbu ukrytego przez wojsko. Brzydki jest w posiadaniu informacji o nazwie cmentarza, na którym został on zakopany, Dobry zna nazwisko na poszukiwanym grobie. Czyni to z nich mimowolny zespół. Po piętach depcze im Zły.',tags=[])
 kdw = AdData(hyperlink='kdw', description='Kiedy dwaj rywalizujący ze sobą łowcy nagród (nagrodzony Oscarem Clint Eastwood oraz Lee Van Cleef) orientują się, że ścigają tego samego bandytę, łączą siły w nadziei doprowadzenia go przed oblicze sprawiedliwości. Jednak wraz z rozwojem akcji, sprawy coraz bardziej się komplikują. Zobacz mocną, drugą część sagi Sergia Leone, w której Eastwood wciela się w osławionego „Człowieka bez imienia”.', tags=[])
@@ -20,3 +20,5 @@ krl = AdData(hyperlink='krl', description='Legenda powraca. By zarobić jeszcze 
 recommender.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
 
 print(recommender.find_similar(['dzb', 'kdw'], 4))
+
+print(recommender.get_ad_links())

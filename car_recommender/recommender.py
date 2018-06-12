@@ -6,7 +6,8 @@ import pandas as pd
 
 
 class Recommender:
-    def __init__(self):
+    def __init__(self, ads_file):
+        #TODO: load ads_file
         self._stopwords = self._load_stopwords()
         self._lsi_model = models.LsiModel.load('allegro_model_lsi')
         self._tf_idf_model = models.TfidfModel.load('allegro_tf_idf_model')
@@ -39,7 +40,8 @@ class Recommender:
         self._add_to_similarity_matrix(descriptions)
 
     def get_ad_links(self):
-        return self._storage['hyperlink'].tolist()
+        '''Returns a list of links to all ads, present in the database'''
+        return self._storage.index.values.tolist()
 
     def find_similar(self, ad_hyperlinks, ads_number):
         """Finds the most similar ads to a given one.
