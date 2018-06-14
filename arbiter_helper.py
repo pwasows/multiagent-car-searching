@@ -107,7 +107,8 @@ class ArbiterHelper:
                 elif i == 1:
                     arbiter().extra["scrapper_actors"].append(actor)
 
-        while True in [actor.is_alive() for actor in self.actors[self._actors_counts[0]:]]:
+        while True in [actor.is_alive() for actor in
+                       self.actors[self._actors_counts[0]+self._actors_counts[1]:-self._actors_counts[3]]]:
             await asyncio.sleep(1)
 
         for actor in self.actors[:self._actors_counts[0]]:

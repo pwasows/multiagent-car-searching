@@ -1,19 +1,24 @@
 import asyncio
 from functools import partial
 from pulsar.api import command, get_actor, send
-from car_recommender.recommender import Recommender
-
+import sys
+sys.path.append('car_recommender')
+from recommender import Recommender
 import json
 
-# zakładam, że tak się nazywa agent, który będzie dodawał nowe oferty do bazy
-SCRAPER_AGENT = 10
 
+# SCRAPER_AGENT
+# zakładam, że tak się nazywa agent, który będzie dodawał nowe oferty do bazy
+
+# UI_AGENT
 # zakładam, że tak się nazywa agent, który będzie wysyłał żądania od uzytkownika:
 #   - prosbe o przeslanie linkow do ofert, ktore sa w bazie tego rekomendatora
 #   - prosbe o zaproponowanie ofert podobnych, do przeslanych
-UI_AGENT = 15
+
 
 async def recommender_job(ads_file):
+    get_actor().extra["running"] = True
+    actor_number = get_actor().extra['sec_number']
     print("Recommender starts. Data file: " + ads_file)
 
     # tworzę obiekt implementujący rekomendację samochodów,
@@ -24,24 +29,15 @@ async def recommender_job(ads_file):
         await asyncio.sleep(1)
 
         # sprawdzam, czy przyszły nowe wiadomości od innych agentów
-        # zakładam, że wysyłają oni jsony w takiej postaci:
-        # {'message': 'treść wiadomości', 'data': <ewentualne dane>}
-        # {''}
-        scraper_message = get_data(SCRAPER_AGENT)
+        scraper_data = await send(get_actor().monitor, '_recommender_get_data', actor_number, 'scrapper_data')
         # zakładam, że jeśli nie ma nowych wiadomości od scrapera,
         # to get_data zwróci None
-        if scraper_message is not None:
-            scraper_message = json.loads(scraper_message)
-            if scraper_message['message'] == 'ADD_ADS':
-                #spodziewam się w scraper_message['data'] listy obiektow AdData
-                recommender.add_ads(scraper_message['data'])
-            else:
-                print('Invalid message from ' + str(SCRAPER_AGENT) +
-                      str(scraper_message))
+        if scraper_data is not None:
+            recommender.add_ads(scraper_data)
 
-        ui_message = get_data(UI_AGENT)
+        ui_message = await send(get_actor().monitor, '_recommender_get_data', get_actor().extra['sec_number'],
+                                'user_input_data')
         if ui_message is not None:
-            ui_message = json.loads(ui_message) 
             # problem(?): jeśli różni agenci-rekomendatorzy
             # będą przechowywali różne oferty, to trzeba żądanie o zwrócenie
             # ofert podobnych do wskazanych skierować do tego agenta, który
@@ -49,18 +45,9 @@ async def recommender_job(ads_file):
             # albo agenci-rekomendatorzy muszą przesłać pomiędzy sobą
             # reprezentacje wektorowe wskazanych ogłoszeń, żeby znaleźć
             # u siebie podobne do nich oferty
-            if ui_message['message'] == 'GET_ADS_LINKS':
-                response = {'message': 'GET_ADS_LINKS_RESPONSE',
-                            'data': recommender.get_ad_links()}
-                store_data(UI_AGENT, json.dumps(response),
-                           'GET_ADS_LINKS_RESPONSE')
-            elif ui_message['message'] == 'FIND_SIMILAR':
-                response = {'message': 'FIND_SIMILAR_RESPONSE',
-                            'data':
-                            recommender.find_similar(ui_message['data'], 5)
-                            }
-                store_data(UI_AGENT, json.dumps(response),
-                           'FIND_SIMILAR_RESPONSE')
+            response = recommender.find_similar(ui_message, 5)
+            await send(get_actor().monitor, '_recommender_store_data', actor_number, 'user_output_data', response)
+            break
 
         '''
         Jeśli zdecydujemy się na wariant, w którym rekomendatorzy wymieniają
@@ -74,7 +61,7 @@ async def recommender_job(ads_file):
 
 def work_gen():
     # ads_files to różne pliki z ofertami, które ładujemy do baz rekomendatorów
-    ads_files = ['ads1', 'ads2']
+    ads_files = ['ads0', 'ads1', 'ads2', 'ads3', 'ads4', 'ads5', 'ads6', 'ads7', 'ads8', 'ads9']
     for i in ads_files:
         yield partial(recommender_job, i)
 
@@ -94,21 +81,24 @@ async def actor_last_task():
 
 # Prosimy arbitra, aby przekazał dane tam gdzie trzeba
 @command()
-async def store_data(_, number, data):
-    await send(get_actor().extra['data_actors'][number], 'store_data_command', data)
+async def _recommender_store_data(_, number, data_name, data):
+    await send(get_actor().extra['data_actors'][number], '_recommender_store_data_command', data_name, data)
 
 
 @command()
-async def get_data(_, number):
-    return await send(get_actor().extra['data_actors'][number], 'get_data_command')
+async def _recommender_get_data(_, number, data_name):
+    return await send(get_actor().extra['data_actors'][number], '_recommender_get_data_command', data_name)
 
 
 # poniższe komendy są wykonywane po stronie data collectora
 @command()
-def store_data_command(_, data):
-    get_actor().extra['some_data'].append(data)
+def _recommender_store_data_command(_, data_name, data):
+    get_actor().extra[data_name].append(data)
 
 
 @command()
-def get_data_command(request):
-    return get_actor().extra['some_data']
+def _recommender_get_data_command(_, data_name):
+    data = get_actor().extra[data_name]
+    if data:
+        return data
+    return None

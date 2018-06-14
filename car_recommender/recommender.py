@@ -9,9 +9,9 @@ class Recommender:
     def __init__(self, ads_file):
         #TODO: load ads_file
         self._stopwords = self._load_stopwords()
-        self._lsi_model = models.LsiModel.load('allegro_model_lsi')
-        self._tf_idf_model = models.TfidfModel.load('allegro_tf_idf_model')
-        self._dictionary = corpora.Dictionary.load('allegro_dictionary')
+        self._lsi_model = models.LsiModel.load('car_recommender/allegro_model_lsi')
+        self._tf_idf_model = models.TfidfModel.load('car_recommender/allegro_tf_idf_model')
+        self._dictionary = corpora.Dictionary.load('car_recommender/allegro_dictionary')
         self._model_index = \
             similarities.Similarity(output_prefix='sim_matrix_tmp',
                                     corpus=None,
@@ -90,7 +90,7 @@ class Recommender:
 
     def _load_stopwords(self):
         stopwords = []
-        with open('stopwords-pl', 'r') as stopwords_file:
+        with open('car_recommender/stopwords-pl', 'r') as stopwords_file:
             stopwords = stopwords_file.readlines()
         stopwords = [word.strip() for word in stopwords]
         return set(stopwords)
