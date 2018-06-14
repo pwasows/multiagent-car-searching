@@ -3,7 +3,7 @@ from functools import partial
 from pulsar.api import command, get_actor, send
 import sys
 sys.path.append('car_recommender')
-from recommender import Recommender
+from recommender import Recommender, ADS_FILES
 import json
 
 
@@ -61,8 +61,7 @@ async def recommender_job(ads_file):
 
 def work_gen():
     # ads_files to różne pliki z ofertami, które ładujemy do baz rekomendatorów
-    ads_files = ['ads0', 'ads1', 'ads2', 'ads3', 'ads4', 'ads5', 'ads6', 'ads7', 'ads8', 'ads9']
-    for i in ads_files:
+    for i in ADS_FILES:
         yield partial(recommender_job, i)
 
 
