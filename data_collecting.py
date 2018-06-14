@@ -6,6 +6,8 @@ from pulsar.api import command, get_actor, send
 async def work():
     get_actor().extra["running"] = True
     get_actor().extra["scrapper_data"] = []
+    get_actor().extra["user_input_data"] = []
+    get_actor().extra["user_output_data"] = []
     last_scrapper_data_size = 0
 
     while get_actor().extra["running"]:
