@@ -20,6 +20,14 @@ krl = AdData(hyperlink='krl', description='Legenda powraca. By zarobić jeszcze 
 
 recommender.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
 
-print(recommender.find_similar(['dzb', 'kdw'], 4))
+existing_ad_link = recommender.get_ad_links()[0]
 
-print(recommender.get_ad_links())
+print(recommender.find_similar(['dzb', 'kdw'], 4))
+print('vector(dupa): ' + str(recommender.get_ad_vector('dupa')))
+print('vector(djg): ' + str(recommender.get_ad_vector('djg')))
+ad_vector = recommender.get_ad_vector(existing_ad_link)
+print('vector(<link>): ' + str(ad_vector))
+print('type(vector(<link>)): ' + str(type(ad_vector)))
+print('test ad link: ' + existing_ad_link)
+print('similar test ad link: ' + str(recommender.find_similar_to_vec(ad_vector, 4)))
+# print(recommender.get_ad_links())

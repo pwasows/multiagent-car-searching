@@ -19,9 +19,12 @@ ADS_FILES = [_MODULE_PATH + '/ads0', _MODULE_PATH + '/ads1',
 class Recommender:
     def __init__(self, ads_file):
         self._stopwords = self._load_stopwords()
-        self._lsi_model = models.LsiModel.load(_MODULE_PATH + '/allegro_model_lsi')
-        self._tf_idf_model = models.TfidfModel.load(_MODULE_PATH + '/allegro_tf_idf_model')
-        self._dictionary = corpora.Dictionary.load(_MODULE_PATH + '/allegro_dictionary')
+        self._lsi_model = models.LsiModel.load(_MODULE_PATH +
+                                               '/allegro_model_lsi')
+        self._tf_idf_model = models.TfidfModel.load(_MODULE_PATH +
+                                                    '/allegro_tf_idf_model')
+        self._dictionary = corpora.Dictionary.load(_MODULE_PATH +
+                                                   '/allegro_dictionary')
         self._model_index = \
             similarities.Similarity(output_prefix='sim_matrix_tmp',
                                     corpus=None,
@@ -82,6 +85,26 @@ class Recommender:
             best_fit_links.append(self._storage.iloc[i])
         return best_fit_links
 
+    def find_similar_to_vec(self, lsi_vector, result_ads_number=1):
+        similarities = list(enumerate(self._model_index[lsi_vector]))
+        # omit 1 in results - it is always lsi_vector itself
+        best_fit = sorted(similarities, key=lambda x: x[1],
+                          reverse=True)[1:result_ads_number + 1]
+
+        best_fit_links = []
+        for i in best_fit:
+            best_fit_links.append(self._storage.iloc[i[0]])
+
+        return best_fit_links
+
+    def get_ad_vector(self, ad_hyperlink):
+        if ad_hyperlink not in self._storage.index:
+            return None
+
+        description = self._storage.loc[ad_hyperlink]['description']
+        # get the only vector from returned corpus
+        return list(self._texts_to_lsi([description]))[0]
+
     def _load_ads_from_file(self, ads_filepath):
         with open(ads_filepath, 'rb') as ads_file:
             ads = pickle.load(ads_file)
@@ -120,6 +143,7 @@ class Recommender:
 
         result = []
         for text in texts:
+            # print('type(text): ' + str(type(text)))
             result.append(tokenizer.tokenize(text))
 
         return result
