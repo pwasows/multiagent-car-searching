@@ -3,21 +3,35 @@ from nltk.tokenize import RegexpTokenizer
 import morfeusz
 from gensim import corpora, models, similarities
 import pandas as pd
+import pickle
+import os
+
+_MODULE_PATH = os.path.dirname(__file__)
+
+ADS_FILES = [_MODULE_PATH + '/ads0', _MODULE_PATH + '/ads1',
+             _MODULE_PATH + '/ads2', _MODULE_PATH + '/ads3',
+             _MODULE_PATH + '/ads4', _MODULE_PATH + '/ads5',
+             _MODULE_PATH + '/ads6', _MODULE_PATH + '/ads7',
+             _MODULE_PATH + '/ads8', _MODULE_PATH + '/ads0',
+             _MODULE_PATH + '/ads10']
 
 
 class Recommender:
     def __init__(self, ads_file):
-        #TODO: load ads_file
         self._stopwords = self._load_stopwords()
-        self._lsi_model = models.LsiModel.load('car_recommender/allegro_model_lsi')
-        self._tf_idf_model = models.TfidfModel.load('car_recommender/allegro_tf_idf_model')
-        self._dictionary = corpora.Dictionary.load('car_recommender/allegro_dictionary')
+        self._lsi_model = models.LsiModel.load(_MODULE_PATH +
+                                               '/allegro_model_lsi')
+        self._tf_idf_model = models.TfidfModel.load(_MODULE_PATH +
+                                                    '/allegro_tf_idf_model')
+        self._dictionary = corpora.Dictionary.load(_MODULE_PATH +
+                                                   '/allegro_dictionary')
         self._model_index = \
             similarities.Similarity(output_prefix='sim_matrix_tmp',
                                     corpus=None,
                                     num_features=self._lsi_model.num_topics)
         self._storage = pd.DataFrame(columns=['hyperlink', 'description'])
         self._storage = self._storage.set_index('hyperlink')
+        self._load_ads_from_file(ads_file)
 
     def add_ads(self, ads_data):
         """Add ads' data to the recommender database. The recommender will find
@@ -66,11 +80,39 @@ class Recommender:
         # negation to sort in descending order
         best_fit = (-result).argsort()[:ads_number]
 
-
         best_fit_links = []
         for i in best_fit:
             best_fit_links.append(self._storage.iloc[i])
         return best_fit_links
+
+    def find_similar_to_vec(self, lsi_vector, result_ads_number=1):
+        similarities = list(enumerate(self._model_index[lsi_vector]))
+        # omit 1 in results - it is always lsi_vector itself
+        best_fit = sorted(similarities, key=lambda x: x[1],
+                          reverse=True)[1:result_ads_number + 1]
+
+        best_fit_links = []
+        for i in best_fit:
+            best_fit_links.append(self._storage.iloc[i[0]])
+
+        return best_fit_links
+
+    def get_ad_vector(self, ad_hyperlink):
+        if ad_hyperlink not in self._storage.index:
+            return None
+
+        description = self._storage.loc[ad_hyperlink]['description']
+        # get the only vector from returned corpus
+        return list(self._texts_to_lsi([description]))[0]
+
+    def _load_ads_from_file(self, ads_filepath):
+        with open(ads_filepath, 'rb') as ads_file:
+            ads = pickle.load(ads_file)
+
+        ad_datas = [AdData(description=value, hyperlink=key, tags=[])
+                    for key, value in ads.items()]
+
+        self.add_ads(ad_datas)
 
     def _add_to_similarity_matrix(self, descriptions):
         description_lsi = self._texts_to_lsi(descriptions)
@@ -90,7 +132,7 @@ class Recommender:
 
     def _load_stopwords(self):
         stopwords = []
-        with open('car_recommender/stopwords-pl', 'r') as stopwords_file:
+        with open(_MODULE_PATH + '/stopwords-pl', 'r') as stopwords_file:
             stopwords = stopwords_file.readlines()
         stopwords = [word.strip() for word in stopwords]
         return set(stopwords)
@@ -101,6 +143,7 @@ class Recommender:
 
         result = []
         for text in texts:
+            # print('type(text): ' + str(type(text)))
             result.append(tokenizer.tokenize(text))
 
         return result
