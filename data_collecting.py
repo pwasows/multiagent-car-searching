@@ -5,18 +5,12 @@ from pulsar.api import command, get_actor, send
 
 async def work():
     get_actor().extra["running"] = True
-    get_actor().extra["scrapper_data"] = []
     get_actor().extra["user_input_data"] = []
     get_actor().extra["user_output_data"] = []
-    last_scrapper_data_size = 0
+    get_actor().extra["user_ad_vectors"] = []
+
 
     while get_actor().extra["running"]:
-        scrapper_data_len = len(get_actor().extra["scrapper_data"])
-        if last_scrapper_data_size != scrapper_data_len:
-            print('{} Wyswietlam nowe dane:'.format(get_actor().name))
-            for i in range(last_scrapper_data_size, scrapper_data_len):
-                print(get_actor().extra["scrapper_data"][i])
-            last_scrapper_data_size = scrapper_data_len
         await asyncio.sleep(1)
 
 

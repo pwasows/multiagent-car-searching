@@ -85,7 +85,6 @@ class ArbiterHelper:
     async def _arbiter_work(self):
         self.actors = []
         arbiter().extra["data_actors"] = []
-        arbiter().extra["scrapper_actors"] = []
 
         if not self._actors_init_tasks:
             self._actors_init_tasks = [_default_actor_init_task] * len(self._actors_counts)
@@ -104,17 +103,19 @@ class ArbiterHelper:
                 self.actors.append(actor)
                 if i == 0:
                     arbiter().extra["data_actors"].append(actor)
-                elif i == 1:
-                    arbiter().extra["scrapper_actors"].append(actor)
 
         while True in [actor.is_alive() for actor in
-                       self.actors[self._actors_counts[0]+self._actors_counts[1]:-self._actors_counts[3]]]:
+                       self.actors[self._actors_counts[0]:-self._actors_counts[2]]]:
             await asyncio.sleep(1)
+
+        await asyncio.sleep(5)
 
         for actor in self.actors[:self._actors_counts[0]]:
             await send(actor, '_stop_run_actor')
 
-        await asyncio.sleep(2)
+        await send(self.actors[-1], '_stop_run_actor')
+
+        await asyncio.sleep(5)
         await self._arbiter_last_task()
 
         try:

@@ -3,12 +3,7 @@ from functools import partial
 from pulsar.api import command, get_actor, send
 import sys
 sys.path.append('car_recommender')
-from recommender import Recommender
-import json
-
-
-# SCRAPER_AGENT
-# zakładam, że tak się nazywa agent, który będzie dodawał nowe oferty do bazy
+from recommender import Recommender, ADS_FILES
 
 # UI_AGENT
 # zakładam, że tak się nazywa agent, który będzie wysyłał żądania od uzytkownika:
@@ -28,41 +23,29 @@ async def recommender_job(ads_file):
     while True:
         await asyncio.sleep(1)
 
-        # sprawdzam, czy przyszły nowe wiadomości od innych agentów
-        scraper_data = await send(get_actor().monitor, '_recommender_get_data', actor_number, 'scrapper_data')
-        # zakładam, że jeśli nie ma nowych wiadomości od scrapera,
-        # to get_data zwróci None
-        if scraper_data is not None:
-            recommender.add_ads(scraper_data)
-
         ui_message = await send(get_actor().monitor, '_recommender_get_data', get_actor().extra['sec_number'],
                                 'user_input_data')
         if ui_message is not None:
-            # problem(?): jeśli różni agenci-rekomendatorzy
-            # będą przechowywali różne oferty, to trzeba żądanie o zwrócenie
-            # ofert podobnych do wskazanych skierować do tego agenta, który
-            # zawiera te oferty
-            # albo agenci-rekomendatorzy muszą przesłać pomiędzy sobą
-            # reprezentacje wektorowe wskazanych ogłoszeń, żeby znaleźć
-            # u siebie podobne do nich oferty
-            response = recommender.find_similar(ui_message, 5)
+            for single_link in ui_message:
+                ad_vector = recommender.get_ad_vector(single_link)
+                if ad_vector is not None:
+                    await send(get_actor().monitor, '_recommender_send_to_all', 'user_ad_vectors', ad_vector)
+
+            await asyncio.sleep(5)
+
+            user_ads = await send(get_actor().monitor, '_recommender_get_data', get_actor().extra['sec_number'],
+                                  'user_ad_vectors')
+            if user_ads is None:
+                response = 'Nie znaleziono ad_vector usera w recommenderze {}'.format(get_actor().extra['sec_number'])
+            else:
+                response = recommender.find_similar_to_vec(user_ads, 1)
             await send(get_actor().monitor, '_recommender_store_data', actor_number, 'user_output_data', response)
             break
-
-        '''
-        Jeśli zdecydujemy się na wariant, w którym rekomendatorzy wymieniają
-        pomiędzy sobą informacje, to tutaj można dodać obsługę wiadomości
-        pomiędzy nimi
-
-        '''
-
-    print('Goodbye!')
 
 
 def work_gen():
     # ads_files to różne pliki z ofertami, które ładujemy do baz rekomendatorów
-    ads_files = ['ads0', 'ads1', 'ads2', 'ads3', 'ads4', 'ads5', 'ads6', 'ads7', 'ads8', 'ads9']
-    for i in ads_files:
+    for i in ADS_FILES[:-1]:
         yield partial(recommender_job, i)
 
 
@@ -80,6 +63,12 @@ async def actor_last_task():
 # a aktorami implementowanymi w tych plikach
 
 # Prosimy arbitra, aby przekazał dane tam gdzie trzeba
+@command()
+async def _recommender_send_to_all(_, data_name, data):
+    for act in get_actor().extra['data_actors']:
+        await send(act, '_recommender_store_data_command', data_name, data)
+
+
 @command()
 async def _recommender_store_data(_, number, data_name, data):
     await send(get_actor().extra['data_actors'][number], '_recommender_store_data_command', data_name, data)

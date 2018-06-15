@@ -1,8 +1,9 @@
 from ad_data import AdData
 from recommender import Recommender
+from recommender import ADS_FILES
 
 
-recommender = Recommender('ignored ads file')
+recommender = Recommender(ADS_FILES[1])
 
 dzb = AdData(hyperlink='dzb', description='Ostatnia część "dolarowej trylogii" Sergia Leone. Trzej mężczyźni, Zły - bezwzględny łowca nagród, Brzydki - wielokrotny przestępca, Dobry - łowca głów z zasadami, usiłują dotrzeć do skarbu ukrytego przez wojsko. Brzydki jest w posiadaniu informacji o nazwie cmentarza, na którym został on zakopany, Dobry zna nazwisko na poszukiwanym grobie. Czyni to z nich mimowolny zespół. Po piętach depcze im Zły.',tags=[])
 kdw = AdData(hyperlink='kdw', description='Kiedy dwaj rywalizujący ze sobą łowcy nagród (nagrodzony Oscarem Clint Eastwood oraz Lee Van Cleef) orientują się, że ścigają tego samego bandytę, łączą siły w nadziei doprowadzenia go przed oblicze sprawiedliwości. Jednak wraz z rozwojem akcji, sprawy coraz bardziej się komplikują. Zobacz mocną, drugą część sagi Sergia Leone, w której Eastwood wciela się w osławionego „Człowieka bez imienia”.', tags=[])
@@ -19,6 +20,14 @@ krl = AdData(hyperlink='krl', description='Legenda powraca. By zarobić jeszcze 
 
 recommender.add_ads([dzb, kdw, zkd, dpl, zkb, hso, lsc, plf, zjp, djg, mow, krl])
 
-print(recommender.find_similar(['dzb', 'kdw'], 4))
+existing_ad_link = recommender.get_ad_links()[0]
 
-print(recommender.get_ad_links())
+print(recommender.find_similar(['dzb', 'kdw'], 4))
+print('vector(dupa): ' + str(recommender.get_ad_vector('dupa')))
+print('vector(djg): ' + str(recommender.get_ad_vector('djg')))
+ad_vector = recommender.get_ad_vector(existing_ad_link)
+print('vector(<link>): ' + str(ad_vector))
+print('type(vector(<link>)): ' + str(type(ad_vector)))
+print('test ad link: ' + existing_ad_link)
+print('similar test ad link: ' + str(recommender.find_similar_to_vec(ad_vector, 4)))
+# print(recommender.get_ad_links())

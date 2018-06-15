@@ -24,7 +24,7 @@ async def work():
             pass
 
     try:
-        urls = ''
+        urls = []
 
         while True:
             data = sock.recv(256)
@@ -36,7 +36,7 @@ async def work():
                 await send(get_actor().monitor, '_user_io_store_data', urls)
                 break
             print('Agent otrzymał URL "{}"\n'.format(data))
-            urls += data
+            urls.append(data)
 
         while get_actor().extra["running"]:
             data = await send(get_actor().monitor, '_user_io_get_data')
@@ -81,9 +81,9 @@ async def _user_io_get_data(_,):
     for act in data_actors:
         data = await send(act, '_user_io_get_data_command')
         if data:
-            results.append(data)
+            results.extend(data)
     if results:
-        return ", ".join(results)
+        return "\n".join(str(x) for x in results)
     else:
         return None
 
@@ -91,9 +91,11 @@ async def _user_io_get_data(_,):
 # poniższe komendy są wykonywane po stronie data collectora
 @command()
 def _user_io_store_data_command(_, data):
-    get_actor().extra['user_input_data'].append(data)
+    get_actor().extra['user_input_data'] = data
 
 
 @command()
 def _user_io_get_data_command(request):
-    return get_actor().extra['user_output_data']
+    result = get_actor().extra['user_output_data']
+    get_actor().extra['user_output_data'] = []
+    return result
