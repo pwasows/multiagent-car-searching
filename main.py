@@ -1,17 +1,14 @@
 from arbiter_helper import ArbiterHelper
-import scrapping
 import data_collecting
 import recommender_agent
 import user_ui_agent
 
 
 def prepare_work_list():
-    return [10, 10, 10, 1],\
-           [data_collecting.work_gen(), scrapping.work_gen(), recommender_agent.work_gen(), user_ui_agent.work_gen()],\
-           [data_collecting.actor_init_task, scrapping.actor_init_task, recommender_agent.actor_init_task,
-            user_ui_agent.actor_init_task],\
-           [data_collecting.actor_last_task, scrapping.actor_last_task, recommender_agent.actor_last_task,
-            user_ui_agent.actor_last_task]
+    return [10, 10, 1],\
+           [data_collecting.work_gen(), recommender_agent.work_gen(), user_ui_agent.work_gen()],\
+           [data_collecting.actor_init_task, recommender_agent.actor_init_task, user_ui_agent.actor_init_task],\
+           [data_collecting.actor_last_task, recommender_agent.actor_last_task, user_ui_agent.actor_last_task]
     # liczebności aktorów do poszczególnych tasków
     # generatory funkcji do poszczególnych tasków
     # funkcje inicjalizujące dla aktorów poszczególnych tasków

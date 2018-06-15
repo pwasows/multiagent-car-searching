@@ -27,7 +27,8 @@ if __name__ == "__main__":
             if data == 'END_OF_RESULTS':
                 print("To wszystkie wyniki\n")
                 break
-            print(data)
+            elif data is not None:
+                print(data)
 
     finally:
         print('Zamykanie połączenia\n')
